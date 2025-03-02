@@ -11,7 +11,8 @@
     <meta http-equiv="Origin-Agent-Cluster" content="?1" />
     <title>FFmpeg.js 0.12.0 Example</title>
     <script src="https://unpkg.com/@ffmpeg/ffmpeg@0.12.15/dist/umd/ffmpeg.js"></script>
-    <script src="https://unpkg.com/@ffmpeg/util@0.12.2/dist/umd/index.js"></script>
+    <script src="./assets/ffmpeg-utils.js"></script>
+    <!-- <script src="https://unpkg.com/@ffmpeg/util@0.12.2/dist/umd/index.js"></script> -->
     <script src="https://unpkg.com/wavesurfer.js"></script>
     <script src="https://unpkg.com/wavesurfer.js@7.9.1/dist/plugins/timeline.js"></script>
 
@@ -71,8 +72,8 @@
         import TimelinePlugin from 'https://unpkg.com/wavesurfer.js@7.9.1/dist/plugins/timeline.esm.js'
         import Hover from 'https://unpkg.com/wavesurfer.js@7.9.1/dist/plugins/hover.esm.js'
         import RegionsPlugin from 'https://unpkg.com/wavesurfer.js@7.9.1/dist/plugins/regions.esm.js'
-
-        console.log(TimelinePlugin)
+        // import { FFmpegUtil } from "https://unpkg.com/@ffmpeg/util@0.12.2/dist/cjs/index.js"
+   
         const { fetchFile } = FFmpegUtil;
         const { FFmpeg } = FFmpegWASM;
         let ffmpeg = null;
@@ -95,7 +96,7 @@
                     message.innerHTML = `${progress * 100} %, time: ${time / 1000000} s`;
                 });
                 await ffmpeg.load({
-                    coreURL: "https://unpkg.com/@ffmpeg/core@0.12.10/dist/umd/ffmpeg-core.js",
+                    coreURL: "./ffmpeg-core.js",
                     worker: false,
                 });
             }
@@ -238,7 +239,7 @@
         document.getElementById('region-play').addEventListener('click', () => {
             console.log('region-play click')
             region.play();
-           
+
             regions.on('region-out', (region) => {
                 console.log(111)
                 region.play();
