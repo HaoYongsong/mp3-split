@@ -77,7 +77,8 @@
 
       // 验证输入
       if (!file || !startTime || !endTime) {
-        message.innerHTML = "Please select a file and specify start and end times.";
+        message.innerHTML =
+          "Please select a file and specify start and end times.";
         return;
       }
 
@@ -105,23 +106,22 @@
 
       // 调用 FFmpeg 命令进行切割
       await ffmpeg.exec([
-        "-i", name,
-        "-ss", startTime,
-        "-to", endTime,
-        "-acodec", "copy",
-        "output.mp3"
+        "-i",
+        name,
+        "-ss",
+        startTime,
+        "-to",
+        endTime,
+        "-acodec",
+        "copy",
+        "output.mp3",
       ]);
       console.timeEnd("exec");
       message.innerHTML = "Complete cutting MP3";
-
-      // 读取切割后的文件
       const data = await ffmpeg.readFile("output.mp3");
 
-      // 创建音频播放器
       const audio = new Audio();
-      audio.src = URL.createObjectURL(
-        new Blob([data.buffer], { type: "audio/mpeg" })
-      );
+      audio.src = URL.createObjectURL(new Blob([data.buffer], { type: "audio/mpeg" }));
       audio.controls = true;
 
       // 创建操作按钮
@@ -150,6 +150,7 @@
       let audioRegion = null;
       actionDom.appendChild(
         createButton("Watch", "btn btn-danger btn-sm", function () {
+          // 创建一个新的音频 region
           if (audioRegion) {
             audioRegion.remove();
             audioRegion = null;
@@ -166,31 +167,28 @@
       );
 
       // 将切割结果添加到表格
-      createTableRow(table.tBodies[0], [
-        startTime,
-        endTime,
-        audio,
-        actionDom,
-      ]);
+      const table = document.getElementById("history");
+      const tbody = table.tBodies[0];
+
+      createTableRow(tbody, [startTime, endTime, audio, actionDom,]);
     }
 
-    // 文件选择处理
     const uploader = document.getElementById("uploader");
     uploader.addEventListener("change", handleFileSelect);
-
+    // 处理文件选择
     function handleFileSelect(event) {
       const file = event.target.files[0];
       if (!file) return;
 
-      // 初始化 WaveSurfer
       wavesurfer = WaveSurfer.create({
+        container: "#waveform",
+        // scrollParent: true,
         container: "#waveform",
         waveColor: "#4F4A85",
         progressColor: "#383351",
         minPxPerSec: 50,
         url: URL.createObjectURL(file),
         plugins: [
-          // 时间轴插件
           TimelinePlugin.create({
             height: 20,
             timeInterval: 0.1,
@@ -232,6 +230,7 @@
 
     // 播放/暂停按钮事件
     document.getElementById("play").addEventListener("click", () => {
+      // 切换播放状态
       if (wavesurfer.isPlaying()) {
         wavesurfer.pause();
       } else {
