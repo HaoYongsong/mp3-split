@@ -16,39 +16,20 @@
     <script src="https://unpkg.com/wavesurfer.js"></script>
     <script src="https://unpkg.com/wavesurfer.js@7.9.1/dist/plugins/timeline.js"></script>
 
-    <style>
-      .btn-group {
-        padding-top: 12px;
-        padding-bottom: 12px;
-      }
-
-      .btn-gradient {
-        background: linear-gradient(45deg, #2f435e, #385f9e);
-        border: none;
-        color: white;
-        padding: 6px 8px;
-        border-radius: 5px;
-        font-family: "微软雅黑", sans-serif;
-        cursor: pointer;
-        transition: all 0.3s ease;
-        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-      }
-
-      .btn-gradient:hover {
-        background: linear-gradient(45deg, #385f9e, #4a6ab5);
-        transform: translateY(-2px);
-        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
-      }
-    </style>
+    <script src="./assets/utils.js"></script>
+    <script src="./assets/dom.js"></script>
+    <link rel="stylesheet" href="./assets/style.css" />
   </head>
 
   <body>
     <h2>本地音頻文件</h2>
     <div id="waveform"></div>
     <div class="btn-group">
-      <button class="btn-gradient" id="play">Play / Pause</button>
-      <button class="btn-gradient" id="region-play">Region Play</button>
-      <button class="btn-gradient" id="cut">Cut</button>
+      <button class="btn btn-primary btn-md" id="play">Play / Pause</button>
+      <button class="btn btn-primary btn-md" id="region-play">
+        Region Play
+      </button>
+      <button class="btn btn-danger btn-md" id="cut">Cut</button>
     </div>
     <input type="file" id="uploader" accept="audio/mpeg" />
     <p id="message"></p>
@@ -64,17 +45,16 @@
       </thead>
       <tbody></tbody>
     </table>
+    <script></script>
     <script type="module">
       import TimelinePlugin from "https://unpkg.com/wavesurfer.js@7.9.1/dist/plugins/timeline.esm.js";
       import Hover from "https://unpkg.com/wavesurfer.js@7.9.1/dist/plugins/hover.esm.js";
       import RegionsPlugin from "https://unpkg.com/wavesurfer.js@7.9.1/dist/plugins/regions.esm.js";
-      // import { FFmpegUtil } from "https://unpkg.com/@ffmpeg/util@0.12.2/dist/cjs/index.js"
 
       const { fetchFile } = FFmpegUtil;
       const { FFmpeg } = FFmpegWASM;
-      let ffmpeg = null;
 
-      async function cut(startTime, endTime) {
+      async function onCutAction(startTime, endTime) {
         const message = document.getElementById("message");
         const file = document.getElementById("uploader").files[0];
 
@@ -84,27 +64,23 @@
           return;
         }
 
-        if (ffmpeg === null) {
-          ffmpeg = new FFmpeg({ worker: false });
-          ffmpeg.on("log", ({ message }) => {
-            console.log(message);
-          });
-          ffmpeg.on("progress", ({ progress, time }) => {
-            message.innerHTML = `${progress * 100} %, time: ${
-              time / 1000000
-            } s`;
-          });
-          await ffmpeg.load({
-            coreURL: "./ffmpeg-core.js",
-            worker: false,
-          });
-        }
+        const ffmpeg = new FFmpeg({ worker: false });
+        ffmpeg.on("log", ({ message }) => {
+          console.log(message);
+        });
+        ffmpeg.on("progress", ({ progress, time }) => {
+          message.innerHTML = `${progress * 100} %, time: ${time / 1000000} s`;
+        });
+        await ffmpeg.load({
+          coreURL: "./ffmpeg-core.js",
+          worker: false,
+        });
 
         const { name } = file;
         await ffmpeg.writeFile(name, await fetchFile(file));
         message.innerHTML = "Start cutting MP3";
         console.time("exec");
-        console.log(startTime, endTime);
+
         await ffmpeg.exec([
           "-i",
           name,
@@ -129,51 +105,31 @@
         const table = document.getElementById("dynamicTable");
         const tbody = table.tBodies[0];
 
-        // 创建新行
-        const newRow = tbody.insertRow();
+        const actionDom = document.createElement("div");
 
-        // 插入单元格
-        newRow.insertCell().textContent = startTime;
-        newRow.insertCell().textContent = endTime;
-        newRow.insertCell().appendChild(audio);
+        actionDom.appendChild(
+          createButton("Download Cut", "btn btn-primary btn-sm", () => {
+            downloadAudioFile(
+              audio.src,
+              `cut_audio_${getFileName(startTime, endTime)}.mp3`
+            );
+          })
+        );
 
-        // 创建包含标题和下载按钮的 div
-        const audioContainer = document.createElement("div");
-        audioContainer.style.marginBottom = "20px"; // 添加一些间距
+        actionDom.appendChild(
+          createButton("Delete", "btn btn-danger btn-sm", function () {
+            const btn = this;
+            const row = btn.parentNode.parentNode.parentNode;
+            row.parentNode.removeChild(row);
+          })
+        );
 
-        // 添加下载按钮
-        const downloadButton = document.createElement("button");
-        downloadButton.textContent = "Download Cut Audio";
-        downloadButton.style.marginLeft = "10px"; // 添加一些间距
-        downloadButton.style.marginRight = "10px"; // 添加一些间距
-        downloadButton.className = "btn-gradient";
-
-        downloadButton.onclick = () => {
-          const link = document.createElement("a");
-          link.href = audio.src;
-          link.download = `cut_audio_${startTime}_to_${endTime}.mp3`; // 设置下载文件名
-          document.body.appendChild(link);
-          link.click();
-          document.body.removeChild(link);
-        };
-        audioContainer.appendChild(downloadButton);
-
-        function deleteRow(btn) {
-          const row = btn.parentNode.parentNode.parentNode;
-          row.parentNode.removeChild(row);
-          updateRowNumbers(); // 删除后更新序号
-        }
-
-        // 添加删除按钮
-        const deleteBtn = document.createElement("button");
-        deleteBtn.className = "btn-gradient";
-        deleteBtn.textContent = "删除";
-        deleteBtn.onclick = function () {
-          deleteRow(this);
-        };
-        audioContainer.appendChild(deleteBtn);
-
-        newRow.insertCell().appendChild(audioContainer);
+        createTableRow(table.tBodies[0], [
+          startTime,
+          endTime,
+          audio,
+          actionDom,
+        ]);
       }
 
       // 绑定文件选择事件
@@ -193,11 +149,11 @@
           container: "#waveform",
           waveColor: "#4F4A85",
           progressColor: "#383351",
-          minPxPerSec: 100,
+          minPxPerSec: 50,
           url: URL.createObjectURL(file),
           plugins: [
             TimelinePlugin.create({
-              height: 10,
+              height: 20,
               timeInterval: 0.1,
               primaryLabelInterval: 1,
               style: {
@@ -223,11 +179,10 @@
         wavesurfer.on("ready", () => {
           const duration = wavesurfer.getDuration();
 
-          console.log(Math.floor(duration / 10));
           region = regions.addRegion({
             start: 0,
-            end: Math.floor(duration / 4),
-            content: "切割區域",
+            end: Math.min(10, Math.floor(duration / 4)),
+            content: "Cut Region",
             drag: true,
             resize: true,
           });
@@ -251,25 +206,11 @@
         });
       });
 
-      function formatSecondsWithDate(seconds) {
-        const date = new Date(seconds * 1000);
-        const h = date.getUTCHours();
-        const m = date.getUTCMinutes();
-        const s = date.getUTCSeconds();
-        const ms =
-          String(seconds).split(".")[1]?.padEnd(3, "0").slice(0, 3) || "000";
-
-        return `${h.toString().padStart(2, "0")}:${m
-          .toString()
-          .padStart(2, "0")}:${s.toString().padStart(2, "0")}.${ms}`;
-      }
-
       document.getElementById("cut").addEventListener("click", () => {
-        cut(
+        onCutAction(
           formatSecondsWithDate(region.start),
           formatSecondsWithDate(region.end)
         );
-        // regions.clearRegions()
       });
     </script>
     <script></script>

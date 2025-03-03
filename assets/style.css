@@ -1,0 +1,159 @@
+/* Button */
+
+.btn-group {
+    padding-top: 12px;
+    padding-bottom: 12px;
+}
+
+.btn-gradient {
+    background: linear-gradient(45deg, #2f435e, #385f9e);
+    border: none;
+    color: white;
+    padding: 6px 8px;
+    border-radius: 5px;
+    font-family: "微软雅黑", sans-serif;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+}
+
+.btn-gradient:hover {
+    background: linear-gradient(45deg, #385f9e, #4a6ab5);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+}
+
+
+
+
+/* 基础按钮样式 */
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    border-radius: 8px;
+    font-family: 'Segoe UI', sans-serif;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin: 8px;
+}
+
+/* 尺寸设置 */
+.btn-sm {
+    padding: 8px 16px;
+    font-size: 12px;
+}
+
+.btn-md {
+    padding: 12px 24px;
+    font-size: 14px;
+}
+
+.btn-lg {
+    padding: 16px 32px;
+    font-size: 16px;
+}
+
+/* 颜色主题 */
+.btn-primary {
+    background-color: #4A90E2;
+    color: white;
+    box-shadow: 0 4px 6px rgba(74, 144, 226, 0.2);
+}
+
+.btn-primary:hover {
+    background-color: #357ABD;
+    transform: translateY(-2px);
+}
+
+.btn-success {
+    background-color: #00C853;
+    color: white;
+    box-shadow: 0 4px 6px rgba(0, 200, 83, 0.2);
+}
+
+.btn-success:hover {
+    background-color: #009624;
+}
+
+.btn-danger {
+    background-color: #FF5252;
+    color: white;
+    box-shadow: 0 4px 6px rgba(255, 82, 82, 0.2);
+}
+
+.btn-danger:hover {
+    background-color: #FF1744;
+}
+
+.btn-warning {
+    background-color: #FFC107;
+    color: #212121;
+    box-shadow: 0 4px 6px rgba(255, 193, 7, 0.2);
+}
+
+.btn-warning:hover {
+    background-color: #FFA000;
+}
+
+/* 禁用状态 */
+.btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none !important;
+}
+
+/* 加载动画 */
+.btn.loading {
+    position: relative;
+    color: transparent;
+}
+
+.btn.loading::after {
+    content: "";
+    position: absolute;
+    width: 18px;
+    height: 18px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-top-color: white;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+th {
+    padding: 16px;
+    text-align: center;
+    font-weight: 500;
+    font-size: 0.9em;
+    letter-spacing: 0.03em;
+    background-color: #f5f5f5;
+}
+
+td {
+    padding: 14px 16px;
+    color: var(--secondary-color);
+    border-bottom: 1px solid var(--border-color);
+    transition: background 0.2s ease;
+}
+
+tr:hover td {
+    background: rgba(0, 0, 0, 0.02);
+    cursor: pointer;
+}
+
+tr:last-child td {
+    border-bottom: none;
+}
