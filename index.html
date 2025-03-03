@@ -1,244 +1,261 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta charset="UTF-8" />
-    <meta http-equiv="Cross-Origin-Opener-Policy" content="same-origin" />
-    <meta http-equiv="Cross-Origin-Embedder-Policy" content="require-corp" />
-    <meta http-equiv="Cross-Origin-Resource-Policy" content="same-origin" />
-    <meta http-equiv="Origin-Agent-Cluster" content="?1" />
-    <title></title>
-    <script src="./library/ffmpeg.js"></script>
-    <script src="./library/ffmpeg-utils.js"></script>
-    <!-- <script src="https://unpkg.com/@ffmpeg/ffmpeg@0.12.15/dist/umd/ffmpeg.js"></script> -->
-    <!-- <script src="https://unpkg.com/@ffmpeg/util@0.12.2/dist/umd/index.js"></script> -->
-    <script src="https://unpkg.com/wavesurfer.js"></script>
-    <script src="https://unpkg.com/wavesurfer.js@7.9.1/dist/plugins/timeline.js"></script>
 
-    <script src="./assets/utils.js"></script>
-    <script src="./assets/dom.js"></script>
-    <link rel="stylesheet" href="./assets/style.css" />
-  </head>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <!-- 跨域相关安全设置 -->
+  <meta charset="UTF-8" />
+  <meta http-equiv="Cross-Origin-Opener-Policy" content="same-origin" />
+  <meta http-equiv="Cross-Origin-Embedder-Policy" content="require-corp" />
+  <meta http-equiv="Cross-Origin-Resource-Policy" content="same-origin" />
+  <meta http-equiv="Origin-Agent-Cluster" content="?1" />
+  <title></title>
+  <!-- FFmpeg 相关库 -->
+  <script src="./library/ffmpeg.js"></script>
+  <script src="./library/ffmpeg-utils.js"></script>
+  <!-- WaveSurfer 音频可视化库及其插件 -->
+  <script src="https://unpkg.com/wavesurfer.js"></script>
+  <script src="https://unpkg.com/wavesurfer.js@7.9.1/dist/plugins/timeline.js"></script>
+  <!-- 自定义工具和样式文件 -->
+  <script src="./assets/utils.js"></script>
+  <script src="./assets/dom.js"></script>
+  <link rel="stylesheet" href="./assets/style.css" />
+</head>
 
-  <body>
-    <div id="waveform"></div>
-    <div class="btn-group">
-      <button class="btn btn-primary btn-md" id="play">Play / Pause</button>
-      <button class="btn btn-primary btn-md" id="region-play">
-        Region Play
-      </button>
-      <button class="btn btn-danger btn-md" id="cut">Cut</button>
-    </div>
-    <input type="file" id="uploader" accept="audio/mpeg" />
-    <p id="message"></p>
+<body>
+  <!-- 波形显示区域 -->
+  <div id="waveform"></div>
+  <!-- 控制按钮组 -->
+  <div class="btn-group">
+    <button class="btn btn-primary btn-md" id="play">Play / Pause</button>
+    <button class="btn btn-primary btn-md" id="region-play">Region Play</button>
+    <button class="btn btn-danger btn-md" id="cut">Cut</button>
+  </div>
+  <!-- 文件上传控件 -->
+  <input type="file" id="uploader" accept="audio/mpeg" />
+  <!-- 消息显示区域 -->
+  <p id="message"></p>
 
-    <table id="dynamicTable">
-      <thead>
-        <tr>
-          <th>开始时间</th>
-          <th>结束时间</th>
-          <th>音频</th>
-          <th>操作</th>
-        </tr>
-      </thead>
-      <tbody></tbody>
-    </table>
-    <script></script>
-    <script type="module">
-      import TimelinePlugin from "https://unpkg.com/wavesurfer.js@7.9.1/dist/plugins/timeline.esm.js";
-      import Hover from "https://unpkg.com/wavesurfer.js@7.9.1/dist/plugins/hover.esm.js";
-      import RegionsPlugin from "https://unpkg.com/wavesurfer.js@7.9.1/dist/plugins/regions.esm.js";
+  <!-- 切割后的音频片段列表 -->
+  <table id="dynamicTable">
+    <thead>
+      <tr>
+        <th>开始时间</th>
+        <th>结束时间</th>
+        <th>音频</th>
+        <th>操作</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+  <script type="module">
+    // 导入 WaveSurfer 插件
+    import TimelinePlugin from "https://unpkg.com/wavesurfer.js@7.9.1/dist/plugins/timeline.esm.js";
+    import Hover from "https://unpkg.com/wavesurfer.js@7.9.1/dist/plugins/hover.esm.js";
+    import RegionsPlugin from "https://unpkg.com/wavesurfer.js@7.9.1/dist/plugins/regions.esm.js";
 
-      const { fetchFile } = FFmpegUtil;
-      const { FFmpeg } = FFmpegWASM;
-      const regions = RegionsPlugin.create();
+    // 初始化 FFmpeg 相关工具
+    const { fetchFile } = FFmpegUtil;
+    const { FFmpeg } = FFmpegWASM;
+    const regions = RegionsPlugin.create();
 
-      // 绑定文件选择事件
-      let wavesurfer = null;
-      let region = null;
+    // 全局变量
+    let wavesurfer = null; // WaveSurfer 实例
+    let region = null;     // 当前选中的区域
 
-      async function onCutAction(_region) {
-        const { start, end } = _region;
+    // 处理音频切割的主要函数
+    async function onCutAction(_region) {
+      const { start, end } = _region;
 
-        const startTime = formatSecondsWithDate(start);
-        const endTime = formatSecondsWithDate(end);
+      // 格式化开始和结束时间
+      const startTime = formatSecondsWithDate(start);
+      const endTime = formatSecondsWithDate(end);
 
-        const message = document.getElementById("message");
-        const file = document.getElementById("uploader").files[0];
+      const message = document.getElementById("message");
+      const file = document.getElementById("uploader").files[0];
 
-        if (!file || !startTime || !endTime) {
-          message.innerHTML =
-            "Please select a file and specify start and end times.";
-          return;
-        }
-
-        const ffmpeg = new FFmpeg({ worker: false });
-        ffmpeg.on("log", ({ message }) => {
-          console.log(message);
-        });
-        ffmpeg.on("progress", ({ progress, time }) => {
-          message.innerHTML = `${progress * 100} %, time: ${time / 1000000} s`;
-        });
-        await ffmpeg.load({
-          coreURL: "./ffmpeg-core.js",
-          worker: false,
-        });
-
-        const { name } = file;
-        await ffmpeg.writeFile(name, await fetchFile(file));
-        message.innerHTML = "Start cutting MP3";
-        console.time("exec");
-
-        await ffmpeg.exec([
-          "-i",
-          name,
-          "-ss",
-          startTime,
-          "-to",
-          endTime,
-          "-acodec",
-          "copy",
-          "output.mp3",
-        ]);
-        console.timeEnd("exec");
-        message.innerHTML = "Complete cutting MP3";
-        const data = await ffmpeg.readFile("output.mp3");
-
-        const audio = new Audio();
-        audio.src = URL.createObjectURL(
-          new Blob([data.buffer], { type: "audio/mpeg" })
-        );
-        audio.controls = true;
-
-        // 添加一行表格
-
-        const table = document.getElementById("dynamicTable");
-        const tbody = table.tBodies[0];
-
-        const actionDom = document.createElement("div");
-
-        actionDom.appendChild(
-          createButton("Download Cut", "btn btn-primary btn-sm", () => {
-            downloadAudioFile(
-              audio.src,
-              `cut_audio_${getFileName(startTime, endTime)}.mp3`
-            );
-          })
-        );
-
-        actionDom.appendChild(
-          createButton("Delete", "btn btn-danger btn-sm", function () {
-            const btn = this;
-            const row = btn.parentNode.parentNode.parentNode;
-            row.parentNode.removeChild(row);
-          })
-        );
-
-        let audioRegion = null;
-
-        actionDom.appendChild(
-          createButton("Watch", "btn btn-danger btn-sm", function () {
-            // 创建一个新的音频 region
-
-            if (audioRegion) {
-              audioRegion.remove();
-              audioRegion = null;
-            } else {
-              audioRegion = regions.addRegion({
-                start,
-                end,
-                drag: false,
-                resize: false,
-                color: "rgba(9,105,218,0.2)",
-              });
-            }
-          })
-        );
-
-        createTableRow(table.tBodies[0], [
-          startTime,
-          endTime,
-          audio,
-          actionDom,
-        ]);
+      // 验证输入
+      if (!file || !startTime || !endTime) {
+        message.innerHTML = "Please select a file and specify start and end times.";
+        return;
       }
 
-      const uploader = document.getElementById("uploader");
-      uploader.addEventListener("change", handleFileSelect);
-      // 处理文件选择
-      function handleFileSelect(event) {
-        const file = event.target.files[0];
-        if (!file) return;
-
-        wavesurfer = WaveSurfer.create({
-          container: "#waveform",
-          // scrollParent: true,
-          container: "#waveform",
-          waveColor: "#4F4A85",
-          progressColor: "#383351",
-          minPxPerSec: 50,
-          url: URL.createObjectURL(file),
-          plugins: [
-            TimelinePlugin.create({
-              height: 20,
-              timeInterval: 0.1,
-              primaryLabelInterval: 1,
-              style: {
-                fontSize: "10px",
-                color: "#6A3274",
-              },
-            }),
-            Hover.create({
-              lineColor: "#ff0000",
-              lineWidth: 2,
-              labelBackground: "#555",
-              labelColor: "#fff",
-              labelSize: "11px",
-            }),
-            regions,
-          ],
-        });
-
-        wavesurfer.on("interaction", () => {
-          wavesurfer.play();
-        });
-
-        wavesurfer.on("ready", () => {
-          const duration = wavesurfer.getDuration();
-
-          region = regions.addRegion({
-            start: 0,
-            end: Math.min(10, Math.floor(duration / 4)),
-            content: "Cut Region",
-            drag: true,
-            resize: true,
-          });
-        });
-      }
-      document.getElementById("play").addEventListener("click", () => {
-        if (wavesurfer.isPlaying()) {
-          wavesurfer.pause();
-        } else {
-          wavesurfer.play();
-        }
-        regions.unAll();
+      // 初始化 FFmpeg
+      const ffmpeg = new FFmpeg({ worker: false });
+      // 设置日志处理
+      ffmpeg.on("log", ({ message }) => {
+        console.log(message);
       });
-      document.getElementById("region-play").addEventListener("click", () => {
-        console.log("region-play click");
-        region.play();
+      // 设置进度处理
+      ffmpeg.on("progress", ({ progress, time }) => {
+        message.innerHTML = `${progress * 100} %, time: ${time / 1000000} s`;
+      });
+      // 加载 FFmpeg 核心
+      await ffmpeg.load({
+        coreURL: "./ffmpeg-core.js",
+        worker: false,
+      });
 
-        regions.on("region-out", (r) => {
-          if (r === region) {
-            region.play();
+      // 执行音频切割
+      const { name } = file;
+      await ffmpeg.writeFile(name, await fetchFile(file));
+      message.innerHTML = "Start cutting MP3";
+      console.time("exec");
+
+      // 调用 FFmpeg 命令进行切割
+      await ffmpeg.exec([
+        "-i", name,
+        "-ss", startTime,
+        "-to", endTime,
+        "-acodec", "copy",
+        "output.mp3"
+      ]);
+      console.timeEnd("exec");
+      message.innerHTML = "Complete cutting MP3";
+
+      // 读取切割后的文件
+      const data = await ffmpeg.readFile("output.mp3");
+
+      // 创建音频播放器
+      const audio = new Audio();
+      audio.src = URL.createObjectURL(
+        new Blob([data.buffer], { type: "audio/mpeg" })
+      );
+      audio.controls = true;
+
+      // 创建操作按钮
+      const actionDom = document.createElement("div");
+
+      // 下载按钮
+      actionDom.appendChild(
+        createButton("Download Cut", "btn btn-primary btn-sm", () => {
+          downloadAudioFile(
+            audio.src,
+            `cut_audio_${getFileName(startTime, endTime)}.mp3`
+          );
+        })
+      );
+
+      // 删除按钮
+      actionDom.appendChild(
+        createButton("Delete", "btn btn-danger btn-sm", function () {
+          const btn = this;
+          const row = btn.parentNode.parentNode.parentNode;
+          row.parentNode.removeChild(row);
+        })
+      );
+
+      // 查看区域按钮
+      let audioRegion = null;
+      actionDom.appendChild(
+        createButton("Watch", "btn btn-danger btn-sm", function () {
+          if (audioRegion) {
+            audioRegion.remove();
+            audioRegion = null;
+          } else {
+            audioRegion = regions.addRegion({
+              start,
+              end,
+              drag: false,
+              resize: false,
+              color: "rgba(9,105,218,0.2)",
+            });
           }
-        });
+        })
+      );
+
+      // 将切割结果添加到表格
+      createTableRow(table.tBodies[0], [
+        startTime,
+        endTime,
+        audio,
+        actionDom,
+      ]);
+    }
+
+    // 文件选择处理
+    const uploader = document.getElementById("uploader");
+    uploader.addEventListener("change", handleFileSelect);
+
+    function handleFileSelect(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      // 初始化 WaveSurfer
+      wavesurfer = WaveSurfer.create({
+        container: "#waveform",
+        waveColor: "#4F4A85",
+        progressColor: "#383351",
+        minPxPerSec: 50,
+        url: URL.createObjectURL(file),
+        plugins: [
+          // 时间轴插件
+          TimelinePlugin.create({
+            height: 20,
+            timeInterval: 0.1,
+            primaryLabelInterval: 1,
+            style: {
+              fontSize: "10px",
+              color: "#6A3274",
+            },
+          }),
+          // 悬停效果插件
+          Hover.create({
+            lineColor: "#ff0000",
+            lineWidth: 2,
+            labelBackground: "#555",
+            labelColor: "#fff",
+            labelSize: "11px",
+          }),
+          regions,
+        ],
       });
 
-      document.getElementById("cut").addEventListener("click", () => {
-        onCutAction(region);
+      // 点击波形时播放
+      wavesurfer.on("interaction", () => {
+        wavesurfer.play();
       });
-    </script>
-    <script></script>
-  </body>
+
+      // 音频加载完成后创建默认区域
+      wavesurfer.on("ready", () => {
+        const duration = wavesurfer.getDuration();
+        region = regions.addRegion({
+          start: 0,
+          end: Math.min(10, Math.floor(duration / 4)),
+          content: "Cut Region",
+          drag: true,
+          resize: true,
+        });
+      });
+    }
+
+    // 播放/暂停按钮事件
+    document.getElementById("play").addEventListener("click", () => {
+      if (wavesurfer.isPlaying()) {
+        wavesurfer.pause();
+      } else {
+        wavesurfer.play();
+      }
+      regions.unAll();
+    });
+
+    // 区域播放按钮事件
+    document.getElementById("region-play").addEventListener("click", () => {
+      region.play();
+      // 区域播放结束后循环播放
+      regions.on("region-out", (r) => {
+        if (r === region) {
+          region.play();
+        }
+      });
+    });
+
+    // 切割按钮事件
+    document.getElementById("cut").addEventListener("click", () => {
+      onCutAction(region);
+    });
+  </script>
+</body>
+
 </html>
