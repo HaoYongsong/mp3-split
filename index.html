@@ -38,7 +38,7 @@
   <p id="message"></p>
 
   <!-- 切割后的音频片段列表 -->
-  <table id="dynamicTable">
+  <table id="history">
     <thead>
       <tr>
         <th>开始时间</th>
@@ -61,7 +61,54 @@
     const regions = RegionsPlugin.create();
 
     // 全局变量
-    let wavesurfer = null; // WaveSurfer 实例
+    // WaveSurfer 实例
+    const wavesurfer = WaveSurfer.create({
+      container: "#waveform",
+      // scrollParent: true,
+      container: "#waveform",
+      waveColor: "#4F4A85",
+      progressColor: "#383351",
+      minPxPerSec: 50,
+      // url: URL.createObjectURL(file),
+      plugins: [
+        TimelinePlugin.create({
+          height: 20,
+          timeInterval: 0.1,
+          primaryLabelInterval: 1,
+          style: {
+            fontSize: "10px",
+            color: "#6A3274",
+          },
+        }),
+        // 悬停效果插件
+        Hover.create({
+          lineColor: "#ff0000",
+          lineWidth: 2,
+          labelBackground: "#555",
+          labelColor: "#fff",
+          labelSize: "11px",
+        }),
+        regions,
+      ],
+    });
+
+    // 点击波形时播放
+    wavesurfer.on("interaction", () => {
+      wavesurfer.play();
+    });
+
+    // 音频加载完成后创建默认区域
+    wavesurfer.on("ready", () => {
+      const duration = wavesurfer.getDuration();
+      region = regions.addRegion({
+        start: 0,
+        end: Math.min(10, Math.floor(duration / 4)),
+        content: "Cut Region",
+        drag: true,
+        resize: true,
+      });
+    });
+
     let region = null;     // 当前选中的区域
 
     // 处理音频切割的主要函数
@@ -176,56 +223,10 @@
     const uploader = document.getElementById("uploader");
     uploader.addEventListener("change", handleFileSelect);
     // 处理文件选择
-    function handleFileSelect(event) {
+    async function handleFileSelect(event) {
       const file = event.target.files[0];
       if (!file) return;
-
-      wavesurfer = WaveSurfer.create({
-        container: "#waveform",
-        // scrollParent: true,
-        container: "#waveform",
-        waveColor: "#4F4A85",
-        progressColor: "#383351",
-        minPxPerSec: 50,
-        url: URL.createObjectURL(file),
-        plugins: [
-          TimelinePlugin.create({
-            height: 20,
-            timeInterval: 0.1,
-            primaryLabelInterval: 1,
-            style: {
-              fontSize: "10px",
-              color: "#6A3274",
-            },
-          }),
-          // 悬停效果插件
-          Hover.create({
-            lineColor: "#ff0000",
-            lineWidth: 2,
-            labelBackground: "#555",
-            labelColor: "#fff",
-            labelSize: "11px",
-          }),
-          regions,
-        ],
-      });
-
-      // 点击波形时播放
-      wavesurfer.on("interaction", () => {
-        wavesurfer.play();
-      });
-
-      // 音频加载完成后创建默认区域
-      wavesurfer.on("ready", () => {
-        const duration = wavesurfer.getDuration();
-        region = regions.addRegion({
-          start: 0,
-          end: Math.min(10, Math.floor(duration / 4)),
-          content: "Cut Region",
-          drag: true,
-          resize: true,
-        });
-      });
+      wavesurfer.load(URL.createObjectURL(file))
     }
 
     // 播放/暂停按钮事件
