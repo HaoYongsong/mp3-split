@@ -53,8 +53,18 @@
 
       const { fetchFile } = FFmpegUtil;
       const { FFmpeg } = FFmpegWASM;
+      const regions = RegionsPlugin.create();
 
-      async function onCutAction(startTime, endTime) {
+      // 绑定文件选择事件
+      let wavesurfer = null;
+      let region = null;
+
+      async function onCutAction(_region) {
+        const { start, end } = _region;
+
+        const startTime = formatSecondsWithDate(start);
+        const endTime = formatSecondsWithDate(end);
+
         const message = document.getElementById("message");
         const file = document.getElementById("uploader").files[0];
 
@@ -102,6 +112,8 @@
         );
         audio.controls = true;
 
+        // 添加一行表格
+
         const table = document.getElementById("dynamicTable");
         const tbody = table.tBodies[0];
 
@@ -124,6 +136,27 @@
           })
         );
 
+        let audioRegion = null;
+
+        actionDom.appendChild(
+          createButton("Watch", "btn btn-danger btn-sm", function () {
+            // 创建一个新的音频 region
+
+            if (audioRegion) {
+              audioRegion.remove();
+              audioRegion = null;
+            } else {
+              audioRegion = regions.addRegion({
+                start,
+                end,
+                drag: false,
+                resize: false,
+                color: "rgba(9,105,218,0.2)",
+              });
+            }
+          })
+        );
+
         createTableRow(table.tBodies[0], [
           startTime,
           endTime,
@@ -132,10 +165,6 @@
         ]);
       }
 
-      // 绑定文件选择事件
-      let wavesurfer = null;
-      const regions = RegionsPlugin.create();
-      let region = null;
       const uploader = document.getElementById("uploader");
       uploader.addEventListener("change", handleFileSelect);
       // 处理文件选择
@@ -200,17 +229,15 @@
         console.log("region-play click");
         region.play();
 
-        regions.on("region-out", (region) => {
-          console.log(111);
-          region.play();
+        regions.on("region-out", (r) => {
+          if (r === region) {
+            region.play();
+          }
         });
       });
 
       document.getElementById("cut").addEventListener("click", () => {
-        onCutAction(
-          formatSecondsWithDate(region.start),
-          formatSecondsWithDate(region.end)
-        );
+        onCutAction(region);
       });
     </script>
     <script></script>
